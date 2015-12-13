@@ -2,7 +2,7 @@
 <html>
     <head>
         <meta charset="UTF-8" />
-        <title>hello phaser!</title>
+        <title>Grow From Earth - A LudumDare Game by James Mowery</title>
         <script src="lib/phaser.min.js"></script>
     </head>
 <body>
@@ -23,7 +23,9 @@ function preload () {
     game.load.spritesheet('dude', 'assets/dude.png', 32, 48);
 }
 
+var platform;
 var platforms;
+var platformsExist = false;
 var scorePlatforms;
 var player;
 var cursors;
@@ -61,9 +63,11 @@ function create () {
     scorePlatforms.enableBody = true;
 
     // Create the ground
+    /*
     var ground = platforms.create(0, 1100, 'platform');
     ground.scale.setTo(2, 2);     // Scale ground to fit the game
     ground.body.immovable = true; // Prevent ground from moving on jump
+    */
 
     // Create the ledges & make it immovable
     /*
@@ -73,35 +77,13 @@ function create () {
     platform.body.immovable = true;
     */
 
-    // Create random platforms upward
-    for (i = 0; i < 100; i++) {
-        //Math.floor(Math.random()*(max-min+1)+min);
-        var rNum = Math.floor(Math.random()*(800-150+1)+150);
-        rNum = rNum - 1000;
-        var platform = platforms.create(rNum,
-            (-350 * i) - 800, 'platform');
-        platform.scale.setTo(2, 2);
-        platform.body.immovable = true;
-        platform.visible = true;
-
-        platform = platforms.create(rNum + 1000, (-350 * i) - 800, 'platform');
-        platform.scale.setTo(2, 2);
-        platform.body.immovable = true;
-        platform.visible = true;
-
-        platform = scorePlatforms.create(rNum + 500, (-350 * i) - 865, 'platform');
-        platform.scale.setTo(2, 2);
-        platform.alpha = 0;
-
-    }
-
     // PLAYER CREATION ///////////////////////
 
     // Player settings
     player = game.add.sprite(game.world.width / 2, 500,
                              'dude');
 
-    //game.camera.bounds = null;
+    // game.camera.bounds = null;
 
     game.physics.arcade.enable(player); // Enable physics for player
 
@@ -141,16 +123,23 @@ function update () {
         case 0:
             // Set the menu to be visible
             // menuVisible = true;
+            console.log("MENU CALLED");
             showMenu(true);
 
             // Wait until input or 3 seconds
             if (game.time.now - timeCheck > 3000) {
                 showMenu(false);
                 gameState = 1;
+                platforms.y = -100;
+                scorePlatforms.y = -100;
             }
             break;
         case 1:
             // Create the platforms
+            if (platformsExist == false) {
+                console.log("Creating Platforms");
+                createPlatforms();
+            }
 
             // Start the platforms moving downwards
             platforms.y += 5;
@@ -166,6 +155,8 @@ function update () {
             scoreText.text = 'Score: ' + score;
 
             gameState = 0;
+            platformsExist = false;
+
             break;
         default:
             gameState = 1;
@@ -240,20 +231,52 @@ function render() {
     // game.debug.pointer(game.input.pointer1);
 }
 
+function createPlatforms() {
+    var i = 0;
+
+    /*
+    platform = platforms.create(400, -500, 'platform');
+    platform.scale.setTo(2, 2);
+    platform.body.immovable = true;
+    platform.visible = true;
+    */
+
+    // Create random platforms upward
+    for (i = 0; i < 100; i++) {
+        //Math.floor(Math.random()*(max-min+1)+min);
+        var rNum = Math.floor(Math.random()*(800-150+1)+150);
+        rNum = rNum - 1000;
+        var platform = platforms.create(rNum,
+            (-375 * i) - 800, 'platform');
+        platform.scale.setTo(2, 2);
+        platform.body.immovable = true;
+        platform.visible = true;
+
+        platform = platforms.create(rNum + 1000, (-375 * i) - 800, 'platform');
+        platform.scale.setTo(2, 2);
+        platform.body.immovable = true;
+        platform.visible = true;
+
+        platform = scorePlatforms.create(rNum + 500, (-375 * i) - 865, 'platform');
+        platform.scale.setTo(2, 2);
+        platform.alpha = 0;
+    }
+
+    platformsExist = true;
+}
+
 function gameOver(player, platform) {
     console.log("Game Over Triggered");
-    platform.kill();
-    player.position.x = game.world.width / 2;
+    // player.position.x = game.world.width / 2;
 
     // TODO: Show Game Over Screen With Score Overview
 
     // Return to menu/start over
-    gameState = 2;
-    timeCheck = game.time.now;
 
-    console.log("Destruction In Progress");
-    platforms.pendingDestroy = true;
-    scorePlatforms.pendingDestroy = true;
+    timeCheck = game.time.now;
+    platforms.removeAll();
+    scorePlatforms.removeAll();
+    gameState = 2;
 }
 
 function addScore(player, platform) {
