@@ -27,6 +27,7 @@ var scorePlatforms;
 
 var player;
 var cursors;
+var touches;
 
 var distance = 0;
 
@@ -44,7 +45,6 @@ function create () {
     // Create the game world
     // game.world.setBounds(0, -10000, 800, 10000);
     game.world.setBounds(0, -1200, 800, 1800);
-    console.log(game.camera.y);
     // Use Arcade Physics
     game.physics.startSystem(Phaser.Physics.ARCADE);
 
@@ -80,35 +80,20 @@ function create () {
         var rNum = Math.floor(Math.random()*(800-150+1)+150);
         rNum = rNum - 1000;
         var platform = platforms.create(rNum,
-            -350 * i, 'platform');
+            (-350 * i) - 800, 'platform');
         platform.scale.setTo(2, 2);
         platform.body.immovable = true;
         platform.visible = true;
 
-        platform = platforms.create(rNum + 1000, -350 * i, 'platform');
+        platform = platforms.create(rNum + 1000, (-350 * i) - 800, 'platform');
         platform.scale.setTo(2, 2);
         platform.body.immovable = true;
         platform.visible = true;
 
-        platform = scorePlatforms.create(rNum + 500, (-350 * i) - 65, 'platform');
+        platform = scorePlatforms.create(rNum + 500, (-350 * i) - 865, 'platform');
         platform.scale.setTo(2, 2);
         platform.alpha = 0;
 
-    }
-
-    // STARS CREATION ///////////////////////
-    stars = game.add.group();
-    stars.enableBody = true; // Physics enabled for stars
-
-    // Create 12 stars evenly spaced apart
-    for (var i = 0; i < 12; i++) {
-        var star = stars.create(i * 70, 0, 'star');
-
-        // Enable gravity on the stars
-        star.body.gravity.y = 6;
-
-        // Gives each star a random bounce value
-        star.body.bounce.y = 0.7 + Math.random() * 0.2;
     }
 
     // PLAYER CREATION ///////////////////////
@@ -138,10 +123,11 @@ function create () {
 
     // CONTROLS ///////////////////////
     cursors = game.input.keyboard.createCursorKeys();
+    touches = game.input.addPointer();
+    touches.maxPointers = 1;
 
     menus = createMenu();
     timeCheck = game.time.now;
-    console.log(timeCheck);
 }
 
 /*
@@ -160,6 +146,7 @@ function update () {
         case 0:
             // Set the menu to be visible
             // menuVisible = true;
+            showMenu(true);
 
             // Wait until input or 3 seconds
             if (game.time.now - timeCheck > 3000) {
@@ -172,10 +159,15 @@ function update () {
             platforms.y += 5;
             scorePlatforms.y += 5;
             distance += 1;
-
             break;
         case 2:
             // Lose
+            console.log("GAME STATE OVER TRIGGERED");
+            // Reset Score
+            distance = 0;
+            score = 0;
+
+            gameState = 0;
             break;
         default:
             gameState = 1;
@@ -190,14 +182,32 @@ function update () {
     // game.physics.arcade.overlap(player, stars, collectStar, null, this);
     game.physics.arcade.collide(player, scorePlatforms);
     game.physics.arcade.overlap(player, scorePlatforms, addScore, null, this);
+    game.physics.arcade.overlap(player, platforms, gameOver, null, this);
 
     // PLAYER CONTROLS ///////////////////////
 
     // Reset the player velocity (movement)
     player.body.velocity.x = 0;
 
+    game.input.onTap.add(onTap, this);
+    /*
+    if (game.input.pointer ) {
+        console.log("TOUCHING!!!");
+    }
+    */
+
+    function onTap(pointer, doubleTap) {
+        //  A single tap (tap duration was < game.input.tapRate) so change alpha
+        console.log("TRIGGER TOUCH");
+        player.body.velocity.x = -600;
+        player.animations.play('left');
+    }
+
+
     // Move left
-    if (cursors.left.isDown) {
+
+    if (touches.onDown) {
+        console.log("TRIGGER TOUCH");
         player.body.velocity.x = -600;
         player.animations.play('left');
     }
@@ -214,6 +224,19 @@ function update () {
         player.frame = 4;
     }
 
+}
+
+function gameOver(player, platform) {
+    console.log("Game Over Triggered");
+    platform.kill();
+
+    // Return to menu/start over
+    gameState = 2;
+    timeCheck = game.time.now;
+
+    console.log("Destruction In Progress");
+    platforms.pendingDestroy = true;
+    scorePlatforms.pendingDestroy = true;
 }
 
 function addScore(player, platform) {
@@ -276,27 +299,6 @@ function showMenu(visible) {
     menus.about.visible = visible;
     menus.link.visible = visible;
 }
-
-function createPirate() {
-    // Create a Pirate
-    pirates.push(0);
-}
-
-function displayPirates() {
-
-    console.log(pirates.length);
-    for (i = 0; i < pirates.length; i++)
-    {
-        var newPirate = game.add.image((65 * i) + 15, 50, 'pirate');
-        newPirate.scale.x = 0.1;
-        newPirate.scale.y = 0.1;
-
-        // console.log("Pirate Added");
-    }
-    pirateImages.push(newPirate);
-}
-
-
 
 </script>
 
