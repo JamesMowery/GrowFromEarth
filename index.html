@@ -12,7 +12,8 @@
 var game = new Phaser.Game(800, 600, Phaser.AUTO, '', {
     preload: preload,
     create: create,
-    update: update
+    update: update,
+    render: render
 });
 
 function preload () {
@@ -123,11 +124,16 @@ function create () {
 
     // CONTROLS ///////////////////////
     cursors = game.input.keyboard.createCursorKeys();
-    touches = game.input.addPointer();
-    touches.maxPointers = 1;
+    // touches = game.input.addPointer();
+    game.input.onHold.add(onTap, this);
+    // game.input.onHold.add(onHold, this);
 
     menus = createMenu();
     timeCheck = game.time.now;
+}
+
+function onTap(pointer, doubleTap) {
+    console.log("onTAPNEW");
 }
 
 /*
@@ -189,20 +195,21 @@ function update () {
     // Reset the player velocity (movement)
     player.body.velocity.x = 0;
 
-    game.input.onHold.add(onHold, this);
+
     /*
     if (game.input.pointer ) {
         console.log("TOUCHING!!!");
     }
     */
 
+    /*
     function onHold(pointer) {
         //  A single tap (tap duration was < game.input.tapRate) so change alpha
         console.log("HOLD TOUCH");
         player.body.velocity.x = -600;
         player.animations.play('left');
     }
-
+    */
 
     // Move left
     if (cursors.left.isDown) {
@@ -216,12 +223,25 @@ function update () {
         player.animations.play('right');
     }
 
+    // Move left
+    /*
+    else if (touches.input) {
+        console.log("HOLDING");
+        player.body.velocity.x = -600;
+        player.animations.play('left');
+    }
+    */
+
     // Stop
     else {
         player.animations.stop();
         player.frame = 4;
     }
 
+}
+
+function render() {
+    game.debug.pointer(game.input.pointer1);
 }
 
 function gameOver(player, platform) {
