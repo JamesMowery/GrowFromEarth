@@ -25,10 +25,8 @@ function preload () {
 
 var platforms;
 var scorePlatforms;
-
 var player;
 var cursors;
-var touches;
 
 var distance = 0;
 
@@ -63,9 +61,9 @@ function create () {
     scorePlatforms.enableBody = true;
 
     // Create the ground
-    //var ground = platforms.create(0, game.world.height - 105, 'platform');
-    //ground.scale.setTo(2, 2);     // Scale ground to fit the game
-    //ground.body.immovable = true; // Prevent ground from moving on jump
+    var ground = platforms.create(0, 1100, 'platform');
+    ground.scale.setTo(2, 2);     // Scale ground to fit the game
+    ground.body.immovable = true; // Prevent ground from moving on jump
 
     // Create the ledges & make it immovable
     /*
@@ -117,23 +115,15 @@ function create () {
     player.animations.add('right', [5, 6, 7, 8], 10, true);
 
     // SCORE KEEPER ///////////////////////
-
     scoreText = game.add.text(16, 16, 'Score: 0',
               { fontSize: '32px', fill: '#000' });
 
-
     // CONTROLS ///////////////////////
     cursors = game.input.keyboard.createCursorKeys();
-    // touches = game.input.addPointer();
-    game.input.onHold.add(onTap, this);
-    // game.input.onHold.add(onHold, this);
 
+    // MENU ///////////////////////
     menus = createMenu();
     timeCheck = game.time.now;
-}
-
-function onTap(pointer, doubleTap) {
-    console.log("onTAPNEW");
 }
 
 /*
@@ -146,7 +136,6 @@ Game States
 var gameState = 0;
 
 function update () {
-
 
     switch(gameState) {
         case 0:
@@ -161,6 +150,8 @@ function update () {
             }
             break;
         case 1:
+            // Create the platforms
+
             // Start the platforms moving downwards
             platforms.y += 5;
             scorePlatforms.y += 5;
@@ -172,6 +163,7 @@ function update () {
             // Reset Score
             distance = 0;
             score = 0;
+            scoreText.text = 'Score: ' + score;
 
             gameState = 0;
             break;
@@ -182,7 +174,6 @@ function update () {
     // COLLISION DETECTION ///////////////////////
 
     // Collide the player and the stars with the platforms
-    game.physics.arcade.collide(player, platforms);
     game.physics.arcade.collide(stars, platforms);
 
     // game.physics.arcade.overlap(player, stars, collectStar, null, this);
@@ -195,42 +186,47 @@ function update () {
     // Reset the player velocity (movement)
     player.body.velocity.x = 0;
 
-
-    /*
-    if (game.input.pointer ) {
-        console.log("TOUCHING!!!");
-    }
-    */
-
-    /*
-    function onHold(pointer) {
-        //  A single tap (tap duration was < game.input.tapRate) so change alpha
-        console.log("HOLD TOUCH");
-        player.body.velocity.x = -600;
-        player.animations.play('left');
-    }
-    */
-
-    // Move left
+    // Move left keyboard
     if (cursors.left.isDown) {
         player.body.velocity.x = -600;
         player.animations.play('left');
     }
 
-    // Move right
+    // Move right keyboard
     else if (cursors.right.isDown) {
         player.body.velocity.x = 600;
         player.animations.play('right');
     }
 
-    // Move left
-    /*
-    else if (touches.input) {
+    // Move left mouse
+    else if (game.input.mousePointer.isDown &&
+             game.input.mousePointer.x < 400) {
+        console.log("HOLDING MOUSE");
+        player.body.velocity.x = -600;
+        player.animations.play('left');
+    }
+
+    // Move right mouse
+    else if (game.input.mousePointer.isDown &&
+             game.input.mousePointer.x > 400) {
+        console.log("HOLDING MOUSE");
+        player.body.velocity.x = 600;
+        player.animations.play('right');
+    }
+
+    // Move left touch
+    else if (game.input.pointer1.isDown && game.input.pointer1.x < 300) {
         console.log("HOLDING");
         player.body.velocity.x = -600;
         player.animations.play('left');
     }
-    */
+
+    // Move right touch
+    else if (game.input.pointer1.isDown && game.input.pointer1.x > 500) {
+        console.log("HOLDING");
+        player.body.velocity.x = 600;
+        player.animations.play('right');
+    }
 
     // Stop
     else {
@@ -241,12 +237,15 @@ function update () {
 }
 
 function render() {
-    game.debug.pointer(game.input.pointer1);
+    // game.debug.pointer(game.input.pointer1);
 }
 
 function gameOver(player, platform) {
     console.log("Game Over Triggered");
     platform.kill();
+    player.position.x = game.world.width / 2;
+
+    // TODO: Show Game Over Screen With Score Overview
 
     // Return to menu/start over
     gameState = 2;
@@ -295,7 +294,7 @@ function createMenu() {
     menuAbout.anchor.x = 0.5;
     menuAbout.anchor.y = 0.5;
 
-    var menuLink = game.add.text(game.width / 2, game.height / 2 + 200,
+    var menuLink = game.add.text(game.width / 2, game.height / 2 + 175,
             'http://mowery.co/', { fontSize: '32px',
                                     fill: '#FFF',
                                     stroke: 'black',
