@@ -20,32 +20,38 @@ function preload () {
     game.load.image('sky', 'assets/sky.png');
     game.load.image('platform', 'assets/platform.png');
     game.load.image('star', 'assets/star.png');
-    game.load.spritesheet('dude', 'assets/dude.png', 32, 48);
+    game.load.image('sun', 'assets/sun.png');
+    game.load.image('plant', 'assets/plantend.png', 32, 48);
+    game.load.image('plantBase', 'assets/plantbase.png');
 }
 
-var platform;
+var plant;
+var ground;
+
+var skyBG;
+var menus;
+var timeCheck;
+
 var platforms;
+var platformLocationX;
 var platformsExist = false;
 var scorePlatforms;
 var player;
 var cursors;
 
-var distance = 0;
-
-var skyBG;
-
-var menus;
-var timeCheck;
-
-var stars;
-
+var collectables;
+var gameSpeedModifier = 1;
 var score = 0;
+var boost = 0;
 var scoreText;
 
+var rope;
+
 function create () {
+
     // Create the game world
-    // game.world.setBounds(0, -10000, 800, 10000);
     game.world.setBounds(0, -1200, 800, 1800);
+
     // Use Arcade Physics
     game.physics.startSystem(Phaser.Physics.ARCADE);
 
@@ -55,46 +61,30 @@ function create () {
     skyBG = game.add.image(0, 0, 'sky');
     skyBG.fixedToCamera = true;
 
-    // Platforms - Group contains the ground and 2 ledges
     platforms = game.add.group();
     platforms.enableBody = true; // Physics enabled for platforms group
 
     scorePlatforms = game.add.group();
     scorePlatforms.enableBody = true;
 
-    // Create the ground
-    /*
-    var ground = platforms.create(0, 1100, 'platform');
-    ground.scale.setTo(2, 2);     // Scale ground to fit the game
-    ground.body.immovable = true; // Prevent ground from moving on jump
-    */
+    collectables = game.add.group();
+    collectables.enableBody = true;
 
-    // Create the ledges & make it immovable
-    /*
-    var platform = platforms.create(300, -200, 'platform');
-    platform.body.immovable = true;
-    platform = platforms.create(-150, -550, 'platform');
-    platform.body.immovable = true;
-    */
+    // Create the ground
+
+    ground = game.add.image(0, 570, 'platform');
+    ground.scale.setTo(2, 2);     // Scale ground to fit the game
 
     // PLAYER CREATION ///////////////////////
 
+    makeRope();
+
     // Player settings
-    player = game.add.sprite(game.world.width / 2, 500,
-                             'dude');
-
-    // game.camera.bounds = null;
-
-    game.physics.arcade.enable(player); // Enable physics for player
-
-    // Player physics settings
-    // player.body.bounce.y = 0.2; // Adds bouncy properties
-    // player.body.gravity.y = 300; // Adds gravity properties
-    player.body.collideWorldBounds = true; // Collision with world edge
-
-    // Player animation, walking left and right
-    player.animations.add('left', [0, 1, 2, 3], 10, true);
-    player.animations.add('right', [5, 6, 7, 8], 10, true);
+    // player = game.add.sprite(game.world.width / 2, 500, 'dude');
+    plant = game.add.sprite(game.world.width / 2, 530, 'plant');
+    game.physics.arcade.enable(plant); // Enable physics for plant
+    plant.anchor.set(0.5);
+    plant.body.collideWorldBounds = true;
 
     // SCORE KEEPER ///////////////////////
     scoreText = game.add.text(16, 16, 'Score: 0',
@@ -106,14 +96,8 @@ function create () {
     // MENU ///////////////////////
     menus = createMenu();
     timeCheck = game.time.now;
-}
 
-/*
-Game States
-0 = Menu
-1 = Game
-2 = Win
-*/
+}
 
 var gameState = 0;
 
@@ -121,41 +105,47 @@ function update () {
 
     switch(gameState) {
         case 0:
-            // Set the menu to be visible
-            // menuVisible = true;
-            console.log("MENU CALLED");
+            // Show the menu
             showMenu(true);
+            ground.visible = true;
 
-            // Wait until input or 3 seconds
+            // Wait 3 seconds, then start game
             if (game.time.now - timeCheck > 3000) {
                 showMenu(false);
                 gameState = 1;
                 platforms.y = -100;
                 scorePlatforms.y = -100;
+                collectables.y = -100;
+                gameSpeedModifier = 1;
+                ground.visible = false;
             }
+
             break;
         case 1:
             // Create the platforms
             if (platformsExist == false) {
-                console.log("Creating Platforms");
                 createPlatforms();
+                createCollectables();
             }
 
-            // Start the platforms moving downwards
-            platforms.y += 5;
-            scorePlatforms.y += 5;
-            distance += 1;
+            // Start platform and score box movement
+            platforms.y         += (5 * gameSpeedModifier);
+            scorePlatforms.y    += (5 * gameSpeedModifier);
+            collectables.y      += (5 * gameSpeedModifier);
+
             break;
         case 2:
             // Lose
-            console.log("GAME STATE OVER TRIGGERED");
-            // Reset Score
-            distance = 0;
+            // Reset Scores & Stats
             score = 0;
+            boost = 0;
+
+            // Reset score text
             scoreText.text = 'Score: ' + score;
 
-            gameState = 0;
+            // Reset platforms and game state to menu
             platformsExist = false;
+            gameState = 0;
 
             break;
         default:
@@ -164,88 +154,106 @@ function update () {
 
     // COLLISION DETECTION ///////////////////////
 
-    // Collide the player and the stars with the platforms
-    game.physics.arcade.collide(stars, platforms);
-
-    // game.physics.arcade.overlap(player, stars, collectStar, null, this);
-    game.physics.arcade.collide(player, scorePlatforms);
-    game.physics.arcade.overlap(player, scorePlatforms, addScore, null, this);
-    game.physics.arcade.overlap(player, platforms, gameOver, null, this);
+    game.physics.arcade.collide(plant, scorePlatforms);
+    game.physics.arcade.overlap(plant, scorePlatforms, addScore, null, this);
+    game.physics.arcade.overlap(plant, platforms, gameOver, null, this);
+    game.physics.arcade.overlap(plant, collectables, addBoost, null, this);
 
     // PLAYER CONTROLS ///////////////////////
 
     // Reset the player velocity (movement)
-    player.body.velocity.x = 0;
+    plant.body.velocity.x = 0;
+    plant.body.rotation = 0;
 
     // Move left keyboard
     if (cursors.left.isDown) {
-        player.body.velocity.x = -600;
-        player.animations.play('left');
+        plant.body.velocity.x = -650;
+        plant.body.rotation = -35;
     }
 
     // Move right keyboard
     else if (cursors.right.isDown) {
-        player.body.velocity.x = 600;
-        player.animations.play('right');
+        plant.body.velocity.x = 650;
+        plant.body.rotation = 35;
     }
 
     // Move left mouse
     else if (game.input.mousePointer.isDown &&
              game.input.mousePointer.x < 400) {
-        console.log("HOLDING MOUSE");
-        player.body.velocity.x = -600;
-        player.animations.play('left');
+        plant.body.velocity.x = -650;
+        plant.body.rotation = -35;
     }
 
     // Move right mouse
     else if (game.input.mousePointer.isDown &&
              game.input.mousePointer.x > 400) {
-        console.log("HOLDING MOUSE");
-        player.body.velocity.x = 600;
-        player.animations.play('right');
+        plant.body.velocity.x = 650;
+        plant.body.rotation = 35;
     }
 
     // Move left touch
     else if (game.input.pointer1.isDown && game.input.pointer1.x < 300) {
-        console.log("HOLDING");
-        player.body.velocity.x = -600;
-        player.animations.play('left');
+        plant.body.velocity.x = -650;
+        plant.body.rotation = -35;
     }
 
     // Move right touch
     else if (game.input.pointer1.isDown && game.input.pointer1.x > 500) {
         console.log("HOLDING");
-        player.body.velocity.x = 600;
-        player.animations.play('right');
+        plant.body.velocity.x = 650;
+        plant.body.rotation = 35;
     }
 
     // Stop
     else {
-        player.animations.stop();
-        player.frame = 4;
+        plant.body.velocity.x = 0;
+        plant.body.rotation = 0;
     }
 
+    rope.x = plant.x - 3;
 }
 
 function render() {
     // game.debug.pointer(game.input.pointer1);
 }
 
-function createPlatforms() {
+function addBoost(plant, theBoost) {
+    theBoost.kill();
+    console.log("Adding Boost");
+
+    if (gameSpeedModifier > 1) {
+         gameSpeedModifier -= 0.05;
+    }
+
+    // boost = boost + 1;
+
+}
+
+function createCollectables() {
     var i = 0;
 
-    /*
-    platform = platforms.create(400, -500, 'platform');
-    platform.scale.setTo(2, 2);
-    platform.body.immovable = true;
-    platform.visible = true;
-    */
+    for (i = 0; i < 100; i++) {
+        //Math.floor(Math.random()*(max-min+1)+min);
+        var rNum = Math.floor(Math.random()*(650-150+1)+150);
+        var collectable = collectables.create(rNum,
+            (i * - 375) - 970, 'sun');
+        collectable.scale.setTo(0.75);
+        collectable.body.immovable = true;
+        collectable.visible = true;
+    }
+
+    console.log("Collectable Created");
+}
+
+function createPlatforms() {
+    var i = 0;
 
     // Create random platforms upward
     for (i = 0; i < 100; i++) {
         //Math.floor(Math.random()*(max-min+1)+min);
         var rNum = Math.floor(Math.random()*(800-150+1)+150);
         rNum = rNum - 1000;
+        platformLocationX = rNum;
         var platform = platforms.create(rNum,
             (-375 * i) - 800, 'platform');
         platform.scale.setTo(2, 2);
@@ -265,38 +273,23 @@ function createPlatforms() {
     platformsExist = true;
 }
 
-function gameOver(player, platform) {
-    console.log("Game Over Triggered");
-    // player.position.x = game.world.width / 2;
-
+function gameOver(plant, platform) {
     // TODO: Show Game Over Screen With Score Overview
-
-    // Return to menu/start over
 
     timeCheck = game.time.now;
     platforms.removeAll();
     scorePlatforms.removeAll();
+    collectables.removeAll();
     gameState = 2;
 }
 
-function addScore(player, platform) {
-    console.log("SCORE FIRED");
+function addScore(plant, platform) {
     platform.kill();
 
     score += 1;
+    gameSpeedModifier += 0.05;
     scoreText.text = 'Score: ' + score;
 }
-
-/*
-function collectStar(player, star) {
-    // Removes the star from the screen
-    star.kill();
-
-    // Update the score
-    score += 1;
-    scoreText.text = 'Score: ' + score;
-}
-*/
 
 function createMenu() {
 
@@ -338,6 +331,30 @@ function showMenu(visible) {
     menus.title.visible = visible;
     menus.about.visible = visible;
     menus.link.visible = visible;
+}
+
+function makeRope() {
+    var count = 0;
+    var length = 918 / 20;
+    var points = [];
+
+    for (var i = 0; i < 20; i++)
+    {
+        points.push(new Phaser.Point(i * length, 0));
+    }
+
+    rope = game.add.rope(400, 600, 'plantBase', null, points);
+    rope.scale.set(0.06);
+
+    rope.updateAnimation = function() {
+        count += 0.1;
+
+        for (var i = 0; i < this.points.length; i++)
+        {
+            this.points[i].y = Math.sin(i * 0.5 + count) * 10;
+        }
+    };
+    rope.rotation = 29.9;
 }
 
 </script>
