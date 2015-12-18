@@ -2,7 +2,7 @@
 <html>
     <head>
         <meta charset="UTF-8" />
-        <title>Grow From Earth - A LudumDare Game by James Mowery</title>
+        <title>Grow From Earth - A LudumDare Game 34 by James Mowery</title>
         <script src="lib/phaser.min.js"></script>
     </head>
 <body>
@@ -14,192 +14,230 @@
 <script type="text/javascript" src="src/world.js"></script>
 <script type="text/javascript">
 
-var game = new Phaser.Game(800, 600, Phaser.AUTO, '', {
-    preload: preload,
-    create: create,
-    update: update,
-    render: render
-});
+    var game = new Phaser.Game(800, 600, Phaser.AUTO, '', {
+        preload: preload,
+        create: create,
+        update: update,
+        render: render
+    });
 
-function preload () {
-    game.load.image('sky', 'assets/sky.png');
-    game.load.image('platform', 'assets/platform.png');
-    game.load.image('star', 'assets/star.png');
-    game.load.image('sun', 'assets/sun.png');
-    game.load.image('plant', 'assets/plantend.png', 32, 48);
-    game.load.image('plantBase', 'assets/plantbase.png');
-}
+    function preload () {
+        game.load.image('sky', 'assets/sky.png');
+        game.load.image('platform', 'assets/platform.png');
+        game.load.image('sun', 'assets/sun.png');
+        game.load.image('plant', 'assets/plantend.png', 32, 48);
+        game.load.image('plantBase', 'assets/plantbase.png');
 
-// Game Variables
-var gameSpeedModifier = 1;
-
-// Player Variables
-var plant;
-var stem;
-
-// World Variables
-var ground;
-var skyBG;
-var platforms;
-var scorePlatforms;
-var platformLocationX;
-var platformsExist = false;
-var collectables;
-
-// Menu Variables
-var menus;
-var timeCheck;
-
-// Control Variables
-var cursors;
-
-// Stat Variables
-var score = 0;
-var boost = 0;
-var scoreText;
-
-function create () {
-
-    // WORLD SETUP
-    ///////////////////////////////////////////////////////////////////////////
-
-    // Create the game world
-    game.world.setBounds(0, -1200, 800, 1800);
-
-    // Use Arcade Physics
-    game.physics.startSystem(Phaser.Physics.ARCADE);
-
-    // LEVEL CREATION
-    ///////////////////////////////////////////////////////////////////////////
-
-    // Create Background
-    skyBG = game.add.image(0, 0, 'sky');
-    skyBG.fixedToCamera = true;
-
-    // Create Ground
-    ground = game.add.image(0, 570, 'platform');
-    ground.scale.setTo(2, 2); // Scale ground to fit the game
-
-    // Create Groups & Enable Physics
-    platforms = game.add.group();
-    platforms.enableBody = true;
-
-    scorePlatforms = game.add.group();
-    scorePlatforms.enableBody = true;
-
-    collectables = game.add.group();
-    collectables.enableBody = true;
-
-    // PLAYER CREATION
-    ///////////////////////////////////////////////////////////////////////////
-
-    // Create Player & Enable Physics
-    plant = game.add.sprite(game.world.width / 2, 530, 'plant');
-    plant.anchor.set(0.5);
-    game.physics.arcade.enable(plant);
-    plant.body.collideWorldBounds = true;
-
-    // Create the stem that is attached to the plant/seed
-    createStem();
-
-    // SCORE
-    ///////////////////////////////////////////////////////////////////////////
-
-    // Creates text element for the scoreboard
-    scoreText = game.add.text(16, 16, 'Score: 0',
-              { fontSize: '32px', fill: '#000' });
-
-    // CONTROLS
-    ///////////////////////////////////////////////////////////////////////////
-
-    cursors = game.input.keyboard.createCursorKeys(); // Keyboard input
-
-    // MENU
-    ///////////////////////////////////////////////////////////////////////////
-
-    menus = createMenu();
-    timeCheck = game.time.now; // Note the time for the menu delay
-
-}
-
-var gameState = 0;
-
-function update () {
-
-    // GAME STATES
-    ///////////////////////////////////////////////////////////////////////////
-
-    switch(gameState) {
-        case 0:
-            // Menu
-
-            showMenu(true);
-            ground.visible = true;
-
-            // Wait 3 seconds, then start game
-            if (game.time.now - timeCheck > 3000) {
-                showMenu(false);
-                gameState = 1;
-                platforms.y = -100;
-                scorePlatforms.y = -100;
-                collectables.y = -100;
-                gameSpeedModifier = 1;
-                ground.visible = false;
-            }
-
-            break;
-        case 1:
-            // Game Playing
-
-            // Create the platforms
-            if (platformsExist == false) {
-                createPlatforms();
-                createCollectables();
-            }
-
-            // Start platform and score box movement
-            platforms.y         += (5 * gameSpeedModifier);
-            scorePlatforms.y    += (5 * gameSpeedModifier);
-            collectables.y      += (5 * gameSpeedModifier);
-
-            break;
-        case 2:
-            // Game Over
-
-            // Reset Scores & Stats
-            score = 0;
-            boost = 0;
-
-            // Reset score text
-            scoreText.text = 'Score: ' + score;
-
-            // Reset platforms and game state to menu
-            platformsExist = false;
-            gameState = 0;
-
-            break;
-        default:
-            gameState = 1;
+        game.load.audio('bop', 'assets/bop.wav');
+        game.load.audio('beep', 'assets/beep.wav');
+        game.load.audio('ohno', 'assets/ohno.wav');
     }
 
-    // COLLISION DETECTION
-    ///////////////////////////////////////////////////////////////////////////
+    // Game Variables
+    var gameSpeedModifier = 1;
 
-    game.physics.arcade.collide(plant, scorePlatforms);
-    game.physics.arcade.overlap(plant, scorePlatforms, addScore, null, this);
-    game.physics.arcade.overlap(plant, platforms, gameOver, null, this);
-    game.physics.arcade.overlap(plant, collectables, addBoost, null, this);
+    // Player Variables
+    var plant;
+    var stem;
 
-    // PLAYER CONTROLS
-    ///////////////////////////////////////////////////////////////////////////
+    // World Variables
+    var ground;
+    var skyBG;
+    var platforms;
+    var scorePlatforms;
+    var platformLocationX;
+    var platformsExist = false;
+    var collectables;
 
-    playerControls();
+    // Menu Variables
+    var menus;
+    var timeCheck;
 
-}
+    // Control Variables
+    var cursors;
 
-function render() {
-    // game.debug.pointer(game.input.pointer1);
-}
+    // Stat Variables
+    var score = 0;
+    var boost = 0;
+    var scoreText;
+    var gameOverState = false;
+    var gameOverText = '';
+
+    var soundBop;
+    var soundBeep;
+    var soundOhNo;
+    
+
+    function create () {
+
+        // WORLD SETUP
+        ///////////////////////////////////////////////////////////////////////////
+
+        // Create the game world
+        game.world.setBounds(0, -1200, 800, 1800);
+
+        // Use Arcade Physics
+        game.physics.startSystem(Phaser.Physics.ARCADE);
+
+        // LEVEL CREATION
+        ///////////////////////////////////////////////////////////////////////////
+
+        // Create Background
+        skyBG = game.add.image(0, 0, 'sky');
+        skyBG.fixedToCamera = true;
+
+        // Create Ground
+        ground = game.add.image(0, 570, 'platform');
+        ground.scale.setTo(2, 2); // Scale ground to fit the game
+        
+        // Create Sound FX
+        soundBop = game.add.sound('bop');
+        soundBeep = game.add.sound('beep');
+        soundOhNo = game.add.sound('ohno');
+
+        // Create Groups & Enable Physics
+        platforms = game.add.group();
+        platforms.enableBody = true;
+
+        scorePlatforms = game.add.group();
+        scorePlatforms.enableBody = true;
+
+        collectables = game.add.group();
+        collectables.enableBody = true;
+
+        // PLAYER CREATION
+        ///////////////////////////////////////////////////////////////////////////
+
+        // Create Player & Enable Physics
+        plant = game.add.sprite(game.world.width / 2, 530, 'plant');
+        plant.anchor.set(0.5);
+        game.physics.arcade.enable(plant);
+        plant.body.collideWorldBounds = true;
+
+        // Create the stem that is attached to the plant/seed
+        createStem();
+
+        // SCORE
+        ///////////////////////////////////////////////////////////////////////////
+
+        // Creates text element for the scoreboard
+        scoreText = game.add.text(16, 16, 'Score: 0',
+                  { fontSize: '32px', fill: '#000' });
+
+        // Creates text for game over screen
+        gameOverText = game.add.text(game.width / 2, game.height / 2,
+            'Final Score: ' + score, {
+            fontSize: '40px',
+            fill: '#FFF',
+            stroke: 'black',
+            strokeThickness: 3
+        });
+        gameOverText.anchor.set(0.5);
+        gameOverText.visible = false;
+
+        // CONTROLS
+        ///////////////////////////////////////////////////////////////////////////
+
+        cursors = game.input.keyboard.createCursorKeys(); // Keyboard input
+
+        // MENU
+        ///////////////////////////////////////////////////////////////////////////
+
+        menus = createMenu();
+        timeCheck = game.time.now; // Note the time for the menu delay
+
+    }
+
+    var gameState = 0;
+
+    function update () {
+
+        // GAME STATES
+        ///////////////////////////////////////////////////////////////////////////
+
+        switch(gameState) {
+            case 0:
+                // Menu
+
+                showMenu(true);
+                ground.visible = true;
+
+                // Wait 3 seconds, then start game
+                if (game.time.now - timeCheck > 3000) {
+
+                    showMenu(false);
+                    gameState = 1;
+                    platforms.y = -100;
+                    scorePlatforms.y = -100;
+                    collectables.y = -100;
+                    gameSpeedModifier = 1;
+                    ground.visible = false;
+                    scoreText.visible = true;
+                }
+
+                break;
+            case 1:
+                // Game Playing
+
+                // Create the platforms
+                if (platformsExist == false) {
+                    createPlatforms();
+                    createCollectables();
+                }
+
+                // Start platform and score box movement
+                platforms.y         += (4 * gameSpeedModifier);
+                scorePlatforms.y    += (4 * gameSpeedModifier);
+                collectables.y      += (4 * gameSpeedModifier);
+
+                break;
+            case 2:
+
+                // Game Over
+                if (gameOverState == true) {
+                    scoreText.visible = false;
+                    gameOverText.text = 'Final Score: ' + score;
+                    gameOverText.visible = true;
+                }
+
+                // Wait 3 seconds, then start game
+                if (game.time.now - timeCheck > 3000) {
+                    // Reset score text
+                    score = 0;
+                    scoreText.text = 'Score: ' + score;
+
+                    // Reset platforms and game state to menu
+                    platformsExist = false;
+                    // Reset Scores & Stats
+                    score = 0;
+                    boost = 0;
+                    gameOverText.visible = false;
+                    gameState = 0;
+                }            
+
+                break;
+            default:
+                gameState = 1;
+        }
+
+        // COLLISION DETECTION
+        ///////////////////////////////////////////////////////////////////////////
+
+        game.physics.arcade.collide(plant, scorePlatforms);
+        game.physics.arcade.overlap(plant, scorePlatforms, addScore, null, this);
+        game.physics.arcade.overlap(plant, platforms, gameOver, null, this);
+        game.physics.arcade.overlap(plant, collectables, addBoost, null, this);
+
+        // PLAYER CONTROLS
+        ///////////////////////////////////////////////////////////////////////////
+
+        playerControls();
+
+    }
+
+    function render() {
+        // game.debug.pointer(game.input.pointer1);
+    }
 
 </script>
 

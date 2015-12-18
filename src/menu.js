@@ -18,9 +18,10 @@ function createMenu() {
     menuTitle.anchor.y = 0.5;
 
     var menuAbout = game.add.text(game.width / 2, game.height / 2 + 50,
-            'A LudumDare Game\nby James Mowery', { fontSize: '32px',
+            'A LudumDare 34 Game \nby James Mowery', { fontSize: '32px',
                                     fill: '#FFF',
                                     stroke: 'black',
+                                    align: 'center',
                                     strokeThickness: 3 });
     menuAbout.anchor.x = 0.5;
     menuAbout.anchor.y = 0.5;
