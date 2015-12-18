@@ -2,7 +2,7 @@
 <html>
     <head>
         <meta charset="UTF-8" />
-        <title>Grow From Earth - A LudumDare Game by James Mowery</title>
+        <title>Grow From Earth - A LudumDare 34 Game by James Mowery</title>
         <script src="lib/phaser.min.js"></script>
     </head>
 <body>
@@ -10,23 +10,28 @@
 <script type="text/javascript" src="src/controls.js"></script>
 <script type="text/javascript" src="src/game.js"></script>
 <script type="text/javascript" src="src/menu.js"></script>
-<script type="text/javascript" src="src/player.js"></script>
 <script type="text/javascript" src="src/world.js"></script>
 <script type="text/javascript">
 
-var game = new Phaser.Game(800, 600, Phaser.AUTO, '', {
-    preload: preload,
-    create: create,
-    update: update,
-    render: render
-});
+var config = {
+    "width": 800,
+    "height": 600,
+    "renderer": Phaser.AUTO,
+    "resolution": window.devicePixelRatio,
+    "state": {
+        "preload": preload,
+        "create": create,
+        "update": update,
+    }
+};
+    
+var game = new Phaser.Game(config);
 
 function preload () {
     game.load.image('sky', 'assets/sky.png');
     game.load.image('platform', 'assets/platform.png');
-    game.load.image('star', 'assets/star.png');
     game.load.image('sun', 'assets/sun.png');
-    game.load.image('plant', 'assets/plantend.png', 32, 48);
+    game.load.image('plant', 'assets/plantend.png');
     game.load.image('plantBase', 'assets/plantbase.png');
 }
 
@@ -59,26 +64,33 @@ var boost = 0;
 var scoreText;
 
 function create () {
+    
 
-    // WORLD SETUP
+    // GAME SETUP
     ///////////////////////////////////////////////////////////////////////////
-
-    // Create the game world
-    game.world.setBounds(0, -1200, 800, 1800);
+    
+    // Scales the game at a 4:3 aspect ration
+    game.scale.fullScreenScaleMode = Phaser.ScaleManager.SHOW_ALL;
+    game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+    game.scale.pageAlignHorizontally = true;
+    game.scale.pageAlignVertically = true;
+    game.scale.refresh();
 
     // Use Arcade Physics
     game.physics.startSystem(Phaser.Physics.ARCADE);
 
-    // LEVEL CREATION
+    // WORLD SETUP
     ///////////////////////////////////////////////////////////////////////////
 
-    // Create Background
-    skyBG = game.add.image(0, 0, 'sky');
+    skyBG = game.add.image(game.width / 2, game.height / 2, 'sky');
     skyBG.fixedToCamera = true;
-
+    skyBG.anchor.set(0.5);
+    skyBG.scale.setTo('100', '100');
+    
     // Create Ground
-    ground = game.add.image(0, 570, 'platform');
-    ground.scale.setTo(2, 2); // Scale ground to fit the game
+    ground = game.add.image(0, game.height - 60, 'platform');
+    ground.fixedToCamera = true;
+    ground.scale.setTo(4, 2); // Scale ground to fit the game
 
     // Create Groups & Enable Physics
     platforms = game.add.group();
@@ -92,15 +104,17 @@ function create () {
 
     // PLAYER CREATION
     ///////////////////////////////////////////////////////////////////////////
-
-    // Create Player & Enable Physics
-    plant = game.add.sprite(game.world.width / 2, 530, 'plant');
+    
+    stem = game.add.sprite(game.width / 2, game.height - 20, 'plantBase');
+    stem.scale.setTo(0.75, 0.26);
+    stem.anchor.set(0.5);
+    game.physics.arcade.enable(stem);
+    stem.body.collideWorldBounds = true;
+    
+    plant = game.add.sprite(game.width / 2, game.height - 100, 'plant');
     plant.anchor.set(0.5);
     game.physics.arcade.enable(plant);
     plant.body.collideWorldBounds = true;
-
-    // Create the stem that is attached to the plant/seed
-    createStem();
 
     // SCORE
     ///////////////////////////////////////////////////////////////////////////
@@ -161,7 +175,7 @@ function update () {
             platforms.y         += (5 * gameSpeedModifier);
             scorePlatforms.y    += (5 * gameSpeedModifier);
             collectables.y      += (5 * gameSpeedModifier);
-
+            
             break;
         case 2:
             // Game Over
@@ -195,10 +209,6 @@ function update () {
 
     playerControls();
 
-}
-
-function render() {
-    // game.debug.pointer(game.input.pointer1);
 }
 
 </script>
